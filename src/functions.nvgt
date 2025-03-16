@@ -1,0 +1,7 @@
+string getURL(const string &in url) {
+    internet_request r(url);
+    while (!r.complete) {
+        wait(1);
+    }
+return r.response_body;
+}

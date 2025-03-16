@@ -1,0 +1,48 @@
+class Translator {
+//https://translate.googleapis.com/translate_a/single?client=gtx&sl={}&tl={}&dt=t&q={}", this->idiomaOrigem, this->idiomaDestino, dlb::dlb_curl_url_encode(dlb::dlb_string_utf8_encode(t)));
+string originalLang;
+string destinationLang;
+json_object availableLanguages;
+
+void setLangs(const string &in originalLang, const string &in destinationLang) {
+this.originalLang = originalLang;
+this.destinationLang = destinationLang;
+}
+
+void addLang(const string &in nameLang, const string &in flagLang) {
+availableLanguages[nameLang] = flagLang;
+}
+
+void init(int list1, int list2) {
+string listLanguages = "Africâner=af\nAlbanês=sq\nAmárico=am\nÁrabe=ar\nArmênio=hy\nAzerbaijano=az\nBasco=eu\nBielo-russo=be\nBengalês=bn\nBósnio=bs\nBúlgaro=bg\nCatalão=ca\nCebuano=ceb\nChinês (simplificado)=zh-CN\nChinês (tradicional)=zh-TW\nCórsico=co\nCroata=hr\nTcheco=cs\nDinamarquês=da\nHolandês=nl\nInglês=en\nEsperanto=eo\nEstoniano=et\nFinlandês=fi\nFrancês=fr\nFrísio=fy\nGalego=gl\nGeorgiano=ka\nAlemão=de\nGrego=el\nGuzerate=gu\nCreole haitiano=ht\nHauçá=ha\nHavaiano=haw\nHebraico=he\nHindi=hi\nHmong=hmn\nHúngaro=hu\nIslandês=is\nIgbo=ig\nIndonésio=id\nIrlandês=ga\nItaliano=it\nJaponês=ja\nJavanês=jw\nCanará=kn\nCazaque=kk\nKhmer=km\nCoreano=ko\nCurdo=ku\nQuirguiz=ky\nLaosiano=lo\nLatim=la\nLetão=lv\nLituano=lt\nLuxemburguês=lb\nMacedônio=mk\nMalgaxe=mg\nMalaio=ms\nMalaiala=ml\nMaltês=mt\nMaori=mi\nMarati=mr\nMongol=mn\nMyanmar (birmanês)=my\nNepalês=ne\nNorueguês=no\nNianja (Chichewa)=ny\nPashto=ps\nPersa=fa\nPolonês=pl\nPortuguês=pt-BR\nPunjabi=pa\nRomeno=ro\nRusso=ru\nSamoano=sm\nGaélico escocês=gd\nSérvio=sr\nSesoto=st\nXona=sn\nSindi=sd\nSinhala (cingalês)=si\nEslovaco=sk\nEsloveno=sl\nSomali=so\nEspanhol=es\nSundanês=su\nSuaíli=sw\nSueco=sv\nTagalo (filipino)=tl\nTajique=tg\nTâmil=ta\nTélugo=te\nTailandês=th\nTurco=tr\nUcraniano=uk\nUrdu=ur\nUsbeque=uz\nVietnamita=vi\nGalês=cy\nXhosa=xh\nÍdiche=yi\nIorubá=yo\nZulu=zu";
+string[] langs = listLanguages.split("\n", false);
+for(int i = 0; i < langs.length(); i++) {
+string[] parse = langs[i].split("=", false);
+this.addLang(parse[0], parse[1]);
+form.add_list_item(list1, parse[0]);
+form.add_list_item(list2, parse[0]);
+}
+this.addLang("Automático", "auto");
+form.add_list_item(list1, "Automático");
+}
+
+string translate(const string &in originalLang, const string &in destinationLang, const string&in text) {
+this.setLangs(this.availableLanguages[originalLang], this.availableLanguages[destinationLang]);
+string result = getURL("https://translate.googleapis.com/translate_a/single?client=gtx&sl=" + this.originalLang + "&tl=" + this.destinationLang + "&dt=t&q=" + url_encode(text));
+        try {
+                        json_array@ o = parse_json(result);
+json_array@ test = o[0];
+
+string finalTranslation;
+for(int i = 0; i < test.length(); i++) {
+json_array@converting = test[i];
+finalTranslation += converting[0];
+}
+return finalTranslation;
+        } catch {
+                alert("oops?", get_exception_info());
+        }
+
+return "";
+}
+}
