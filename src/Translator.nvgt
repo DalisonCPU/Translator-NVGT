@@ -23,6 +23,10 @@ class Translator {
             this.apiKey = key;
         }
 
+        string getApiKey() {
+            return this.apiKey;
+        }
+
 	string translate(const string &in originalLang, const string &in destinationLang, const string&in text) {
 		string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
 

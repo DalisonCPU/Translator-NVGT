@@ -6,7 +6,7 @@
 Translator translator;
 audio_form form;
 void main() {
-if (!initializeApiKey()) {
+if (!loadConfiguration()) {
 	exit();
 }
 form.create_window("Renova Translator", true);
@@ -15,13 +15,17 @@ int list2 = form.create_list("Idioma de destino");
 int textCTRL = form.create_input_box("Texto � traduzir", multiline = true, multiline_enter = false);
 int buttonCTRL = form.create_button("&Traduzir");
 translator.init(list1, list2);
+applyLanguagePositions(list1, list2);
 //translator.setLangs("pt-BR", "en");
 while(true) {
 wait(5);
 if(key_pressed(KEY_ESCAPE)) exit();
 form.monitor();
 if(form.is_pressed(buttonCTRL) || key_pressed(KEY_RETURN) && !key_down(KEY_LSHIFT) && !key_down(KEY_RSHIFT)) {
-string result = translator.translate(form.get_list_item(list1, form.get_list_position(list1)), form.get_list_item(list2, form.get_list_position(list2)), form.get_text(textCTRL));
+int sourcePos = form.get_list_position(list1);
+int targetPos = form.get_list_position(list2);
+string result = translator.translate(form.get_list_item(list1, sourcePos), form.get_list_item(list2, targetPos), form.get_text(textCTRL));
+updateLanguagePositions(sourcePos, targetPos);
 form.set_text(textCTRL, "");
 speak(result);
 clipboard_set_text(result);

@@ -1,3 +1,26 @@
+int savedSourcePosition = 0;
+int savedDestinationPosition = 0;
+
+string readFile(const string &in filePath) {
+    file f;
+    if (f.open(filePath, "r")) {
+        string content = f.read();
+        f.close();
+        return content;
+    }
+    return "";
+}
+
+bool writeFile(const string &in filePath, const string &in content) {
+    file f;
+    if (f.open(filePath, "w")) {
+        f.write(content);
+        f.close();
+        return true;
+    }
+    return false;
+}
+
 string requestURL(const string &in url, const string &in body = "") {
     internet_request r;
     r.set_url(url);
@@ -12,29 +35,57 @@ string requestURL(const string &in url, const string &in body = "") {
     return r.response_body;
 }
 
-bool initializeApiKey() {
-    string apiKey;
-    file f;
-    if (f.open("configs.txt", "r")) {
-        apiKey = f.read();
-        f.close();
+bool loadConfiguration() {
+    string configData = readFile("configs.json");
+    string apiKey = "";
+    
+    if (configData != "") {
+        try {
+            json_object@ config = parse_json(configData);
+            
+            if (config.exists("api_key")) {
+                apiKey = config["api_key"];
+            }
+            if (config.exists("source_position")) {
+                savedSourcePosition = config["source_position"];
+            }
+            if (config.exists("destination_position")) {
+                savedDestinationPosition = config["destination_position"];
+            }
+        } catch {
+        }
     }
     
-    if(apiKey == "") {
-    apiKey = input_box("API Key Required", "Please enter your Gemini API key:");
-    }
-
+    if (apiKey == "") {
+        apiKey = input_box("API Key Required", "Please enter your Gemini API key:");
         if (apiKey == "") {
-        alert("Error", "API key not provided.");
-        return false;
+            alert("Error", "API key not provided.");
+            return false;
+        }
     }
 
-    file configFile;
-    if (configFile.open("configs.txt", "w")) {
-        configFile.write(apiKey);
-        configFile.close();
-    }
-    
     translator.setApiKey(apiKey);
+    saveConfiguration();
     return true;
+}
+
+void saveConfiguration() {
+    json_object config;
+    config["api_key"] = translator.getApiKey();
+    config["source_position"] = savedSourcePosition;
+    config["destination_position"] = savedDestinationPosition;
+    
+    string jsonString = config.stringify();
+    writeFile("configs.json", jsonString);
+}
+
+void updateLanguagePositions(int sourcePos, int targetPos) {
+    savedSourcePosition = sourcePos;
+    savedDestinationPosition = targetPos;
+    saveConfiguration();
+}
+
+void applyLanguagePositions(int list1, int list2) {
+    form.set_list_position(list1, savedSourcePosition);
+    form.set_list_position(list2, savedDestinationPosition);
 }
