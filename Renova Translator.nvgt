@@ -13,22 +13,41 @@ form.create_window("Renova Translator", true);
 int list1 = form.create_list("Idioma de origem");
 int list2 = form.create_list("Idioma de destino");
 int textCTRL = form.create_input_box("Texto � traduzir", multiline = true, multiline_enter = false);
+int translationsList = form.create_list("Translation options");
 int buttonCTRL = form.create_button("&Traduzir");
 translator.init(list1, list2);
 applyLanguagePositions(list1, list2);
 //translator.setLangs("pt-BR", "en");
+timer checkForm;
+int currentFocus = 0;
 while(true) {
 wait(5);
 if(key_pressed(KEY_ESCAPE)) exit();
+if(checkForm.elapsed >= 20) {
+    checkForm.restart();
 form.monitor();
-if(form.is_pressed(buttonCTRL) || key_pressed(KEY_RETURN) && !key_down(KEY_LSHIFT) && !key_down(KEY_RSHIFT)) {
+currentFocus = form.get_current_focus();
+}
+
+if(form.is_pressed(buttonCTRL) || (currentFocus == textCTRL && key_pressed(KEY_RETURN) && !key_down(KEY_LSHIFT) && !key_down(KEY_RSHIFT))) {
 int sourcePos = form.get_list_position(list1);
 int targetPos = form.get_list_position(list2);
 string result = translator.translate(form.get_list_item(list1, sourcePos), form.get_list_item(list2, targetPos), form.get_text(textCTRL));
+parseTranslations(result, translationsList);
 updateLanguagePositions(sourcePos, targetPos);
 form.set_text(textCTRL, "");
-speak(result);
-clipboard_set_text(result);
+if(translationOptions.length() > 0) {
+    speak(translationOptions[0]);
+    clipboard_set_text(translationOptions[0]);
+}
+}
+if(form.get_current_focus() == translationsList && form.get_list_position(translationsList) >= 0 && key_pressed(KEY_RETURN)) {
+    speak("Foi pressionado");
+string selectedTranslation = getSelectedTranslation(translationsList);
+if(selectedTranslation != "") {
+    speak(selectedTranslation);
+    clipboard_set_text(selectedTranslation);
+}
 }
 }
 }

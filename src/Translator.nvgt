@@ -32,13 +32,19 @@ class Translator {
 
 		string fromLang = (this.availableLanguages[originalLang] == "auto") ? "the automatically detected language" : "'" + originalLang + "'";
 		string toLang = "'" + destinationLang + "'";
+		string userLang = getUserLanguage();
 
 		string prompt = "You are an expert translator. Your task is to translate the provided text to the " + toLang + " language.\n";
 		prompt += "The original language of the text is " + fromLang + ".\n";
 		prompt += "Important instructions:\n";
-		prompt += "1. Return ONLY the translated text.\n";
-		prompt += "2. Do not include explanations, greetings or any extra text in your response.\n";
-		prompt += "3. If there are multiple valid and common translations, separate them using this delimiter: |||\n\n";
+		prompt += "1. Provide multiple translation options when applicable (formal, informal, literal, contextual, etc).\n";
+		prompt += "2. For each translation, use this exact format:\n";
+		prompt += "   ###TYPE### translation_text\n";
+		prompt += "   Where TYPE describes the translation style in " + userLang + " (e.g., for Portuguese: Formal, Informal, Literal, Contextual, Técnica, Coloquial)\n";
+		prompt += "3. If only one translation is appropriate, use ###Padrão### as the type (or equivalent in " + userLang + ").\n";
+		prompt += "4. Separate multiple translations with the delimiter: |||\n";
+		prompt += "5. The TYPE descriptions must be in " + userLang + " so the user can understand them.\n";
+		prompt += "6. Do not include any other explanations outside the format specified.\n\n";
 		prompt += "Text to translate:\n---\n" + text + "\n---";
 
 		string escapedPrompt = prompt;

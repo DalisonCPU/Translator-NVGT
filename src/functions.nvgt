@@ -1,5 +1,21 @@
 int savedSourcePosition = 0;
 int savedDestinationPosition = 0;
+string[] translationOptions;
+string[] translationTypes;
+string userLanguage = "";
+
+string getUserLanguage() {
+    if (userLanguage != "") {
+        return userLanguage;
+    }
+
+    userLanguage = input_box("User Language", "Please enter your native language (e.g., Portuguese from Brazil, Portuguese from Portugal, Spanish, etc.).\nLeave empty for English:");
+    if (userLanguage == "") {
+        userLanguage = "English";
+    }
+    
+    return userLanguage;
+}
 
 string readFile(const string &in filePath) {
     file f;
@@ -19,6 +35,64 @@ bool writeFile(const string &in filePath, const string &in content) {
         return true;
     }
     return false;
+}
+
+void parseTranslations(const string &in translatedText, int translationsList) {
+    translationOptions.resize(0);
+    translationTypes.resize(0);
+    form.clear_list(translationsList);
+    
+    string defaultType = (userLanguage.find("Portuguese") != -1 || userLanguage.find("Português") != -1) ? "Padrão" : "Standard";
+    
+    if (translatedText.find("|||") == -1) {
+        string cleanText = translatedText;
+        string translationType = defaultType;
+        
+        if (cleanText.find("###") == 0) {
+            int endDelimiter = cleanText.find("###", 3);
+            if (endDelimiter != -1) {
+                translationType = cleanText.substr(3, endDelimiter - 3);
+                cleanText = cleanText.substr(endDelimiter + 3);
+                if (cleanText.find(" ") == 0) {
+                    cleanText = cleanText.substr(1);
+                }
+            }
+        }
+        
+        translationOptions.insert_last(cleanText);
+        translationTypes.insert_last(translationType);
+        form.add_list_item(translationsList, translationType + ": " + cleanText);
+    } else {
+        string[] translations = translatedText.split("|||", false);
+        for (int i = 0; i < translations.length(); i++) {
+            string currentTranslation = translations[i];
+            string translationType = "Option " + (i + 1);
+            
+            if (currentTranslation.find("###") != -1) {
+                int startDelimiter = currentTranslation.find("###");
+                int endDelimiter = currentTranslation.find("###", startDelimiter + 3);
+                if (startDelimiter != -1 && endDelimiter != -1 && endDelimiter > startDelimiter) {
+                    translationType = currentTranslation.substr(startDelimiter + 3, endDelimiter - startDelimiter - 3);
+                    currentTranslation = currentTranslation.substr(endDelimiter + 3);
+                    if (currentTranslation.find(" ") == 0) {
+                        currentTranslation = currentTranslation.substr(1);
+                    }
+                }
+            }
+            
+            translationOptions.insert_last(currentTranslation);
+            translationTypes.insert_last(translationType);
+            form.add_list_item(translationsList, translationType + ": " + currentTranslation);
+        }
+    }
+}
+
+string getSelectedTranslation(int translationsList) {
+    int selectedIndex = form.get_list_position(translationsList);
+    if (selectedIndex >= 0 && selectedIndex < translationOptions.length()) {
+        return translationOptions[selectedIndex];
+    }
+    return "";
 }
 
 string requestURL(const string &in url, const string &in body = "") {
@@ -52,6 +126,9 @@ bool loadConfiguration() {
             if (config.exists("destination_position")) {
                 savedDestinationPosition = config["destination_position"];
             }
+            if (config.exists("user_language")) {
+                userLanguage = config["user_language"];
+            }
         } catch {
         }
     }
@@ -64,6 +141,7 @@ bool loadConfiguration() {
         }
     }
 
+    getUserLanguage();
     translator.setApiKey(apiKey);
     saveConfiguration();
     return true;
@@ -74,6 +152,7 @@ void saveConfiguration() {
     config["api_key"] = translator.getApiKey();
     config["source_position"] = savedSourcePosition;
     config["destination_position"] = savedDestinationPosition;
+    config["user_language"] = userLanguage;
     
     string jsonString = config.stringify();
     writeFile("configs.json", jsonString);
