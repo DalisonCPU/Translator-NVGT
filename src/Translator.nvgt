@@ -1,48 +1,81 @@
 class Translator {
-//https://translate.googleapis.com/translate_a/single?client=gtx&sl={}&tl={}&dt=t&q={}", this->idiomaOrigem, this->idiomaDestino, dlb::dlb_curl_url_encode(dlb::dlb_string_utf8_encode(t)));
-string originalLang;
-string destinationLang;
-json_object availableLanguages;
+        private string apiKey;
+        json_object availableLanguages;
 
-void setLangs(const string &in originalLang, const string &in destinationLang) {
-this.originalLang = originalLang;
-this.destinationLang = destinationLang;
-}
+	void addLanguage(const string &in nameLang, const string &in flagLang) {
+		availableLanguages[nameLang] = flagLang;
+	}
 
-void addLang(const string &in nameLang, const string &in flagLang) {
-availableLanguages[nameLang] = flagLang;
-}
+	void init(int list1, int list2) {
+		string languagesList = "Afrikaans=af\nAlbanian=sq\nAmharic=am\nArabic=ar\nArmenian=hy\nAzerbaijani=az\nBasque=eu\nBelarusian=be\nBengali=bn\nBosnian=bs\nBulgarian=bg\nCatalan=ca\nCebuano=ceb\nChinese (simplified)=zh-CN\nChinese (traditional)=zh-TW\nCorsican=co\nCroatian=hr\nCzech=cs\nDanish=da\nDutch=nl\nEnglish=en\nEsperanto=eo\nEstonian=et\nFinnish=fi\nFrench=fr\nFrisian=fy\nGalician=gl\nGeorgian=ka\nGerman=de\nGreek=el\nGujarati=gu\nHaitian Creole=ht\nHausa=ha\nHawaiian=haw\nHebrew=he\nHindi=hi\nHmong=hmn\nHungarian=hu\nIcelandic=is\nIgbo=ig\nIndonesian=id\nIrish=ga\nItalian=it\nJapanese=ja\nJavanese=jw\nKannada=kn\nKazakh=kk\nKhmer=km\nKorean=ko\nKurdish=ku\nKyrgyz=ky\nLao=lo\nLatin=la\nLatvian=lv\nLithuanian=lt\nLuxembourgish=lb\nMacedonian=mk\nMalagasy=mg\nMalay=ms\nMalayalam=ml\nMaltese=mt\nMaori=mi\nMarathi=mr\nMongolian=mn\nMyanmar (Burmese)=my\nNepali=ne\nNorwegian=no\nNyanja (Chichewa)=ny\nPashto=ps\nPersian=fa\nPolish=pl\nPortuguese=pt-BR\nPunjabi=pa\nRomanian=ro\nRussian=ru\nSamoan=sm\nScots Gaelic=gd\nSerbian=sr\nSesotho=st\nShona=sn\nSindhi=sd\nSinhala (Sinhalese)=si\nSlovak=sk\nSlovenian=sl\nSomali=so\nSpanish=es\nSundanese=su\nSwahili=sw\nSwedish=sv\nTagalog (Filipino)=tl\nTajik=tg\nTamil=ta\nTelugu=te\nThai=th\nTurkish=tr\nUkrainian=uk\nUrdu=ur\nUzbek=uz\nVietnamese=vi\nWelsh=cy\nXhosa=xh\nYiddish=yi\nYoruba=yo\nZulu=zu";
+		string[] languages = languagesList.split("\n", false);
+		for(int i = 0; i < languages.length(); i++) {
+			string[] parsedLang = languages[i].split("=", false);
+			this.addLanguage(parsedLang[0], parsedLang[1]);
+			form.add_list_item(list1, parsedLang[0]);
+			form.add_list_item(list2, parsedLang[0]);
+		}
+		this.addLanguage("Automatic", "auto");
+		form.add_list_item(list1, "Automatic");
+	}
 
-void init(int list1, int list2) {
-string listLanguages = "Africâner=af\nAlbanês=sq\nAmárico=am\nÁrabe=ar\nArmênio=hy\nAzerbaijano=az\nBasco=eu\nBielo-russo=be\nBengalês=bn\nBósnio=bs\nBúlgaro=bg\nCatalão=ca\nCebuano=ceb\nChinês (simplificado)=zh-CN\nChinês (tradicional)=zh-TW\nCórsico=co\nCroata=hr\nTcheco=cs\nDinamarquês=da\nHolandês=nl\nInglês=en\nEsperanto=eo\nEstoniano=et\nFinlandês=fi\nFrancês=fr\nFrísio=fy\nGalego=gl\nGeorgiano=ka\nAlemão=de\nGrego=el\nGuzerate=gu\nCreole haitiano=ht\nHauçá=ha\nHavaiano=haw\nHebraico=he\nHindi=hi\nHmong=hmn\nHúngaro=hu\nIslandês=is\nIgbo=ig\nIndonésio=id\nIrlandês=ga\nItaliano=it\nJaponês=ja\nJavanês=jw\nCanará=kn\nCazaque=kk\nKhmer=km\nCoreano=ko\nCurdo=ku\nQuirguiz=ky\nLaosiano=lo\nLatim=la\nLetão=lv\nLituano=lt\nLuxemburguês=lb\nMacedônio=mk\nMalgaxe=mg\nMalaio=ms\nMalaiala=ml\nMaltês=mt\nMaori=mi\nMarati=mr\nMongol=mn\nMyanmar (birmanês)=my\nNepalês=ne\nNorueguês=no\nNianja (Chichewa)=ny\nPashto=ps\nPersa=fa\nPolonês=pl\nPortuguês=pt-BR\nPunjabi=pa\nRomeno=ro\nRusso=ru\nSamoano=sm\nGaélico escocês=gd\nSérvio=sr\nSesoto=st\nXona=sn\nSindi=sd\nSinhala (cingalês)=si\nEslovaco=sk\nEsloveno=sl\nSomali=so\nEspanhol=es\nSundanês=su\nSuaíli=sw\nSueco=sv\nTagalo (filipino)=tl\nTajique=tg\nTâmil=ta\nTélugo=te\nTailandês=th\nTurco=tr\nUcraniano=uk\nUrdu=ur\nUsbeque=uz\nVietnamita=vi\nGalês=cy\nXhosa=xh\nÍdiche=yi\nIorubá=yo\nZulu=zu";
-string[] langs = listLanguages.split("\n", false);
-for(int i = 0; i < langs.length(); i++) {
-string[] parse = langs[i].split("=", false);
-this.addLang(parse[0], parse[1]);
-form.add_list_item(list1, parse[0]);
-form.add_list_item(list2, parse[0]);
-}
-this.addLang("Automático", "auto");
-form.add_list_item(list1, "Automático");
-}
-
-string translate(const string &in originalLang, const string &in destinationLang, const string&in text) {
-this.setLangs(this.availableLanguages[originalLang], this.availableLanguages[destinationLang]);
-string result = getURL("https://translate.googleapis.com/translate_a/single?client=gtx&sl=" + this.originalLang + "&tl=" + this.destinationLang + "&dt=t&q=" + url_encode(text));
-        try {
-                        json_array@ o = parse_json(result);
-json_array@ test = o[0];
-
-string finalTranslation;
-for(int i = 0; i < test.length(); i++) {
-json_array@converting = test[i];
-finalTranslation += converting[0];
-}
-return finalTranslation;
-        } catch {
-                alert("oops?", get_exception_info());
+        void setApiKey(const string &in key) {
+            this.apiKey = key;
         }
 
-return "";
-}
+	string translate(const string &in originalLang, const string &in destinationLang, const string&in text) {
+		string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+
+		string fromLang = (this.availableLanguages[originalLang] == "auto") ? "the automatically detected language" : "'" + originalLang + "'";
+		string toLang = "'" + destinationLang + "'";
+
+		string prompt = "You are an expert translator. Your task is to translate the provided text to the " + toLang + " language.\n";
+		prompt += "The original language of the text is " + fromLang + ".\n";
+		prompt += "Important instructions:\n";
+		prompt += "1. Return ONLY the translated text.\n";
+		prompt += "2. Do not include explanations, greetings or any extra text in your response.\n";
+		prompt += "3. If there are multiple valid and common translations, separate them using this delimiter: |||\n\n";
+		prompt += "Text to translate:\n---\n" + text + "\n---";
+
+		string escapedPrompt = prompt;
+		escapedPrompt.replace("\\", "\\\\");
+		escapedPrompt.replace("\"", "\\\"");
+		escapedPrompt.replace("\n", "\\n");
+		escapedPrompt.replace("\r", "\\r");
+		escapedPrompt.replace("\t", "\\t");
+
+		string body = "{\"contents\":[{\"parts\":[{\"text\":\"" + escapedPrompt + "\"}]}]}";
+		
+		string result = requestURL(url, body);
+
+		try {
+			json_object@ response = parse_json(result);
+			json_array@ candidates = response["candidates"];
+
+			if (candidates is null || candidates.length() == 0) {
+				 alert("Gemini API Error", "The API response does not contain 'candidates'. Response received: " + result);
+				 return "Error: Invalid API response.";
+			}
+
+			json_object@ firstCandidate = candidates[0];
+			json_object@ content = firstCandidate["content"];
+			json_array@ parts = content["parts"];
+
+			if (parts is null || parts.length() == 0) {
+				alert("Gemini API Error", "The API response does not contain 'parts'.");
+				return "Error: Invalid API response.";
+			}
+
+			json_object@ firstPart = parts[0];
+			string translatedText = firstPart["text"];
+
+			return translatedText;
+
+		} catch {
+			alert("Translation Error", "Failed to process Gemini API response.\\n" + get_exception_info() + "\\nResponse received:\\n" + result);
+			return "Translation error.";
+		}
+
+		return "Unknown translation error.";
+	}
 }

@@ -1,7 +1,40 @@
-string getURL(const string &in url) {
-    internet_request r(url);
+string requestURL(const string &in url, const string &in body = "") {
+    internet_request r;
+    r.set_url(url);
+    r.set_header("Content-Type", "application/json");
+    if (body != "") {
+        r.set_payload(body);
+    }
+    r.perform();
     while (!r.complete) {
         wait(1);
     }
-return r.response_body;
+    return r.response_body;
+}
+
+bool initializeApiKey() {
+    string apiKey;
+    file f;
+    if (f.open("configs.txt", "r")) {
+        apiKey = f.read();
+        f.close();
+    }
+    
+    if(apiKey == "") {
+    apiKey = input_box("API Key Required", "Please enter your Gemini API key:");
+    }
+
+        if (apiKey == "") {
+        alert("Error", "API key not provided.");
+        return false;
+    }
+
+    file configFile;
+    if (configFile.open("configs.txt", "w")) {
+        configFile.write(apiKey);
+        configFile.close();
+    }
+    
+    translator.setApiKey(apiKey);
+    return true;
 }

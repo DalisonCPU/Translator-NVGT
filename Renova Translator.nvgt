@@ -6,13 +6,16 @@
 Translator translator;
 audio_form form;
 void main() {
+if (!initializeApiKey()) {
+	exit();
+}
 form.create_window("Renova Translator", true);
 int list1 = form.create_list("Idioma de origem");
 int list2 = form.create_list("Idioma de destino");
-int textCTRL = form.create_input_box("Texto à traduzir", multiline = true, multiline_enter = false);
+int textCTRL = form.create_input_box("Texto ï¿½ traduzir", multiline = true, multiline_enter = false);
 int buttonCTRL = form.create_button("&Traduzir");
 translator.init(list1, list2);
-translator.setLangs("pt-BR", "en");
+//translator.setLangs("pt-BR", "en");
 while(true) {
 wait(5);
 if(key_pressed(KEY_ESCAPE)) exit();
