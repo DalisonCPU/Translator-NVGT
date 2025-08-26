@@ -36,27 +36,36 @@ class Translator {
 
 		string prompt = "You are an expert translator. Your task is to translate the provided text to the " + toLang + " language.\n";
 		prompt += "The original language of the text is " + fromLang + ".\n";
-		prompt += "Important instructions:\n";
-		prompt += "1. Provide multiple translation options when applicable (formal, informal, literal, contextual, etc).\n";
-		prompt += "2. For each translation, use this exact format:\n";
+		prompt += "CRITICAL INSTRUCTIONS:\n";
+		prompt += "1. ALL translation results must be in " + toLang + " language only.\n";
+		prompt += "2. The TYPE descriptions must be in " + userLang + " language.\n";
+		prompt += "3. The actual translated text must be in " + toLang + " language.\n";
+		prompt += "4. Format: ###TYPE_IN_" + userLang.upper() + "### TRANSLATED_TEXT_IN_" + toLang.upper() + "\n";
+		prompt += "5. Provide multiple translation options when applicable (formal, informal, literal, contextual, etc).\n";
+		prompt += "6. For each translation, use this exact format:\n";
 		prompt += "   ###TYPE### translation_text\n";
-		prompt += "   Where TYPE describes the translation style in " + userLang + " language.\n";
-		prompt += "   You must write the TYPE description in " + userLang + ". Examples:\n";
+		prompt += "   Where:\n";
+		prompt += "   - TYPE: description in " + userLang + " (like 'terjemahan formal', 'tradução informal', etc.)\n";
+		prompt += "   - translation_text: the actual translation in " + toLang + " ONLY\n";
 		
 		// Add specific examples based on user language
 		if (userLang.find("Indonesian") != -1) {
-			prompt += "   For Indonesian: ###terjemahan formal### or ###terjemahan santai### or ###terjemahan langsung###\n";
+			prompt += "7. Example for Indonesian user translating to English:\n";
+			prompt += "   ###terjemahan formal### Good morning, how are you?\n";
+			prompt += "   ###terjemahan santai### Hey, how's it going?\n";
 		} else if (userLang.find("Portuguese") != -1 || userLang.find("Português") != -1) {
-			prompt += "   For Portuguese: ###tradução formal### or ###tradução informal### or ###tradução literal###\n";
-		} else if (userLang.find("Spanish") != -1 || userLang.find("Español") != -1) {
-			prompt += "   For Spanish: ###traducción formal### or ###traducción informal### or ###traducción literal###\n";
+			prompt += "7. Example for Portuguese user translating to English:\n";
+			prompt += "   ###tradução formal### Good morning, how are you?\n";
+			prompt += "   ###tradução informal### Hey, how's it going?\n";
 		} else {
-			prompt += "   For English: ###formal translation### or ###informal translation### or ###literal translation###\n";
+			prompt += "7. Example:\n";
+			prompt += "   ###formal translation### [translated text in target language]\n";
+			prompt += "   ###informal translation### [translated text in target language]\n";
 		}
 		
-		prompt += "3. Always describe the translation TYPE using " + userLang + " words naturally.\n";
-		prompt += "4. Separate multiple translations with the delimiter: |||\n";
-		prompt += "5. Do not include any other explanations outside the format specified.\n\n";
+		prompt += "8. REMEMBER: Only the TYPE description uses " + userLang + ", the translated text must be in " + toLang + ".\n";
+		prompt += "9. Separate multiple translations with the delimiter: |||\n";
+		prompt += "10. Do not include any other explanations outside the format specified.\n\n";
 		prompt += "Text to translate:\n---\n" + text + "\n---";
 
 		string escapedPrompt = prompt;

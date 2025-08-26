@@ -17,7 +17,6 @@ int translationsList = form.create_list("Translation options");
 int buttonCTRL = form.create_button("&Traduzir");
 translator.init(list1, list2);
 applyLanguagePositions(list1, list2);
-//translator.setLangs("pt-BR", "en");
 timer checkForm;
 int currentFocus = 0;
 while(true) {
