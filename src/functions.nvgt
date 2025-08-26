@@ -42,7 +42,8 @@ void parseTranslations(const string &in translatedText, int translationsList) {
     translationTypes.resize(0);
     form.clear_list(translationsList);
     
-    string defaultType = (userLanguage.find("Portuguese") != -1 || userLanguage.find("Português") != -1) ? "Padrão" : "Standard";
+    // No need to hardcode default types anymore, Gemini will use user language naturally
+    string defaultType = "Standard"; // Fallback only
     
     if (translatedText.find("|||") == -1) {
         string cleanText = translatedText;

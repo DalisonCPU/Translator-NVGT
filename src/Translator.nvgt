@@ -40,11 +40,23 @@ class Translator {
 		prompt += "1. Provide multiple translation options when applicable (formal, informal, literal, contextual, etc).\n";
 		prompt += "2. For each translation, use this exact format:\n";
 		prompt += "   ###TYPE### translation_text\n";
-		prompt += "   Where TYPE describes the translation style in " + userLang + " (e.g., for Portuguese: Formal, Informal, Literal, Contextual, Técnica, Coloquial)\n";
-		prompt += "3. If only one translation is appropriate, use ###Padrão### as the type (or equivalent in " + userLang + ").\n";
+		prompt += "   Where TYPE describes the translation style in " + userLang + " language.\n";
+		prompt += "   You must write the TYPE description in " + userLang + ". Examples:\n";
+		
+		// Add specific examples based on user language
+		if (userLang.find("Indonesian") != -1) {
+			prompt += "   For Indonesian: ###terjemahan formal### or ###terjemahan santai### or ###terjemahan langsung###\n";
+		} else if (userLang.find("Portuguese") != -1 || userLang.find("Português") != -1) {
+			prompt += "   For Portuguese: ###tradução formal### or ###tradução informal### or ###tradução literal###\n";
+		} else if (userLang.find("Spanish") != -1 || userLang.find("Español") != -1) {
+			prompt += "   For Spanish: ###traducción formal### or ###traducción informal### or ###traducción literal###\n";
+		} else {
+			prompt += "   For English: ###formal translation### or ###informal translation### or ###literal translation###\n";
+		}
+		
+		prompt += "3. Always describe the translation TYPE using " + userLang + " words naturally.\n";
 		prompt += "4. Separate multiple translations with the delimiter: |||\n";
-		prompt += "5. The TYPE descriptions must be in " + userLang + " so the user can understand them.\n";
-		prompt += "6. Do not include any other explanations outside the format specified.\n\n";
+		prompt += "5. Do not include any other explanations outside the format specified.\n\n";
 		prompt += "Text to translate:\n---\n" + text + "\n---";
 
 		string escapedPrompt = prompt;
