@@ -17,11 +17,23 @@ int translationsList = form.create_list("Translation options");
 int buttonCTRL = form.create_button("&Traduzir");
 translator.init(list1, list2);
 applyLanguagePositions(list1, list2);
+
+
 timer checkForm;
 int currentFocus = 0;
 while(true) {
 wait(5);
 if(key_pressed(KEY_ESCAPE)) exit();
+
+if(key_pressed(KEY_F1)) {
+    toggleClipboardMonitoring();
+}
+
+if(clipboardMonitoringActive && clipboardCheckTimer.elapsed >= 100) {
+    clipboardCheckTimer.restart();
+    processClipboardChange(list1, list2);
+}
+
 if(checkForm.elapsed >= 20) {
     checkForm.restart();
 form.monitor();

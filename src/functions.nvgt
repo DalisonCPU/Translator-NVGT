@@ -4,6 +4,10 @@ string[] translationOptions;
 string[] translationTypes;
 string userLanguage = "";
 
+bool clipboardMonitoringActive = false;
+string lastClipboardText = "";
+timer clipboardCheckTimer;
+
 string getUserLanguage() {
     if (userLanguage != "") {
         return userLanguage;
@@ -15,6 +19,10 @@ string getUserLanguage() {
     }
     
     return userLanguage;
+}
+
+string trim(const string &in str) {
+    return str.trim_whitespace_left().trim_whitespace_right();
 }
 
 string readFile(const string &in filePath) {
@@ -42,31 +50,13 @@ void parseTranslations(const string &in translatedText, int translationsList) {
     translationTypes.resize(0);
     form.clear_list(translationsList);
     
-    // No need to hardcode default types anymore, Gemini will use user language naturally
-    string defaultType = "Standard"; // Fallback only
+    string workingText = translatedText.trim_whitespace();
     
-    if (translatedText.find("|||") == -1) {
-        string cleanText = translatedText;
-        string translationType = defaultType;
-        
-        if (cleanText.find("###") == 0) {
-            int endDelimiter = cleanText.find("###", 3);
-            if (endDelimiter != -1) {
-                translationType = cleanText.substr(3, endDelimiter - 3);
-                cleanText = cleanText.substr(endDelimiter + 3);
-                if (cleanText.find(" ") == 0) {
-                    cleanText = cleanText.substr(1);
-                }
-            }
-        }
-        
-        translationOptions.insert_last(cleanText);
-        translationTypes.insert_last(translationType);
-        form.add_list_item(translationsList, translationType + ": " + cleanText);
-    } else {
-        string[] translations = translatedText.split("|||", false);
+
+    if (workingText.find("|||") != -1) {
+        string[] translations = workingText.split("|||", false);
         for (int i = 0; i < translations.length(); i++) {
-            string currentTranslation = translations[i];
+            string currentTranslation = translations[i].trim_whitespace();
             string translationType = "Option " + (i + 1);
             
             if (currentTranslation.find("###") != -1) {
@@ -74,16 +64,71 @@ void parseTranslations(const string &in translatedText, int translationsList) {
                 int endDelimiter = currentTranslation.find("###", startDelimiter + 3);
                 if (startDelimiter != -1 && endDelimiter != -1 && endDelimiter > startDelimiter) {
                     translationType = currentTranslation.substr(startDelimiter + 3, endDelimiter - startDelimiter - 3);
-                    currentTranslation = currentTranslation.substr(endDelimiter + 3);
-                    if (currentTranslation.find(" ") == 0) {
-                        currentTranslation = currentTranslation.substr(1);
-                    }
+                    currentTranslation = currentTranslation.substr(endDelimiter + 3).trim_whitespace();
                 }
             }
             
             translationOptions.insert_last(currentTranslation);
             translationTypes.insert_last(translationType);
             form.add_list_item(translationsList, translationType + ": " + currentTranslation);
+        }
+    } else {
+        if (workingText.find("###") != -1) {
+            string remaining = workingText;
+            
+            int firstHashPos = remaining.find("###");
+            if (firstHashPos > 0) {
+                string firstPart = remaining.substr(0, firstHashPos).trim_whitespace();
+                
+                string translationType = "Standard";
+                int colonPos = firstPart.find(":");
+                if (colonPos != -1) {
+                    translationType = firstPart.substr(0, colonPos).trim_whitespace();
+                    firstPart = firstPart.substr(colonPos + 1).trim_whitespace();
+                }
+                
+                if (firstPart.length() > 0) {
+                    translationOptions.insert_last(firstPart);
+                    translationTypes.insert_last(translationType);
+                    form.add_list_item(translationsList, translationType + ": " + firstPart);
+                }
+                
+                remaining = remaining.substr(firstHashPos);
+            }
+            
+
+            while (remaining.find("###") != -1) {
+                int startDelimiter = remaining.find("###");
+                if (startDelimiter == -1) break;
+                
+                int endDelimiter = remaining.find("###", startDelimiter + 3);
+                if (endDelimiter == -1) break;
+                
+                string translationType = remaining.substr(startDelimiter + 3, endDelimiter - startDelimiter - 3);
+                remaining = remaining.substr(endDelimiter + 3);
+                
+
+                int nextHashPos = remaining.find("###");
+                string currentTranslation;
+                
+                if (nextHashPos != -1) {
+                    currentTranslation = remaining.substr(0, nextHashPos).trim_whitespace();
+                    remaining = remaining.substr(nextHashPos);
+                } else {
+                    currentTranslation = remaining.trim_whitespace();
+                    remaining = "";
+                }
+                
+                if (currentTranslation.length() > 0) {
+                    translationOptions.insert_last(currentTranslation);
+                    translationTypes.insert_last(translationType);
+                    form.add_list_item(translationsList, translationType + ": " + currentTranslation);
+                }
+            }
+        } else {
+            translationOptions.insert_last(workingText);
+            translationTypes.insert_last("Standard");
+            form.add_list_item(translationsList, "Standard: " + workingText);
         }
     }
 }
@@ -113,6 +158,7 @@ string requestURL(const string &in url, const string &in body = "") {
 bool loadConfiguration() {
     string configData = readFile("configs.json");
     string apiKey = "";
+    string model = "";
     
     if (configData != "") {
         try {
@@ -120,6 +166,9 @@ bool loadConfiguration() {
             
             if (config.exists("api_key")) {
                 apiKey = config["api_key"];
+            }
+            if (config.exists("model")) {
+                model = config["model"];
             }
             if (config.exists("source_position")) {
                 savedSourcePosition = config["source_position"];
@@ -142,8 +191,13 @@ bool loadConfiguration() {
         }
     }
 
+    if (model == "") {
+            model = "gemini-2.5-flash-lite"; // Default to fastest
+    }
+
     getUserLanguage();
     translator.setApiKey(apiKey);
+    translator.setModel(model);
     saveConfiguration();
     return true;
 }
@@ -151,6 +205,7 @@ bool loadConfiguration() {
 void saveConfiguration() {
     json_object config;
     config["api_key"] = translator.getApiKey();
+    config["model"] = translator.getModel();
     config["source_position"] = savedSourcePosition;
     config["destination_position"] = savedDestinationPosition;
     config["user_language"] = userLanguage;
@@ -168,4 +223,89 @@ void updateLanguagePositions(int sourcePos, int targetPos) {
 void applyLanguagePositions(int list1, int list2) {
     form.set_list_position(list1, savedSourcePosition);
     form.set_list_position(list2, savedDestinationPosition);
+}
+
+void toggleClipboardMonitoring() {
+    clipboardMonitoringActive = !clipboardMonitoringActive;
+    
+    if (clipboardMonitoringActive) {
+        lastClipboardText = clipboard_get_text();
+        clipboardCheckTimer.restart();
+        speak("Monitoramento da área de transferência ativado");
+    } else {
+        speak("Monitoramento da área de transferência desativado");
+    }
+}
+
+void processClipboardChange(int list1, int list2) {
+    string currentClipboard = clipboard_get_text();
+    
+    if (currentClipboard != lastClipboardText && currentClipboard.length() > 0) {
+        lastClipboardText = currentClipboard;
+        
+        int sourcePos = form.get_list_position(list1);
+        int targetPos = form.get_list_position(list2);
+        string sourceLang = form.get_list_item(list1, sourcePos);
+        string targetLang = form.get_list_item(list2, targetPos);
+        
+        string result = translator.detectLanguageAndTranslate(currentClipboard, sourceLang, targetLang);
+        
+        string[] resultParts = result.split("|", false);
+        if (resultParts.length() >= 2) {
+            string direction = resultParts[0];
+            string translation = resultParts[1];
+            
+            string cleanTranslation = extractFirstTranslation(translation);
+            
+                speak(cleanTranslation);
+            clipboard_set_text(cleanTranslation);
+            lastClipboardText = cleanTranslation; // Atualiza para evitar loop
+        }
+    }
+}
+
+string extractFirstTranslation(const string &in translatedText) {
+    string result = translatedText.trim_whitespace();
+    
+
+    if (result.find("|||") != -1) {
+        string[] parts = result.split("|||", false);
+        result = parts[0].trim_whitespace();
+    }
+    
+    if (result.find("###") != -1) {
+        if (result.find("###") == 0) {
+            int endDelimiter = result.find("###", 3);
+            if (endDelimiter != -1) {
+                result = result.substr(endDelimiter + 3).trim_whitespace();
+                int nextHashPos = result.find("###");
+                if (nextHashPos != -1) {
+                    result = result.substr(0, nextHashPos).trim_whitespace();
+                }
+            }
+        } else {
+            int firstHashPos = result.find("###");
+            string beforeHash = result.substr(0, firstHashPos).trim_whitespace();
+            
+            if (beforeHash.length() > 0) {
+                int colonPos = beforeHash.find(":");
+                if (colonPos != -1) {
+                    beforeHash = beforeHash.substr(colonPos + 1).trim_whitespace();
+                }
+                
+                result = beforeHash;
+            } else {
+                int endDelimiter = result.find("###", firstHashPos + 3);
+                if (endDelimiter != -1) {
+                    result = result.substr(endDelimiter + 3).trim_whitespace();
+                    int nextHashPos = result.find("###");
+                    if (nextHashPos != -1) {
+                        result = result.substr(0, nextHashPos).trim_whitespace();
+                    }
+                }
+            }
+        }
+    }
+    
+    return result.trim_whitespace();
 }

@@ -1,5 +1,6 @@
 class Translator {
         private string apiKey;
+        private string model;
         json_object availableLanguages;
 
 	void addLanguage(const string &in nameLang, const string &in flagLang) {
@@ -27,8 +28,111 @@ class Translator {
             return this.apiKey;
         }
 
+        void setModel(const string &in modelName) {
+            this.model = modelName;
+        }
+        string getModel() {
+            return this.model.length() > 0 ? this.model : "gemini-1.5-flash";
+        }
+
+        private string buildApiUrl() {
+            return "https://generativelanguage.googleapis.com/v1beta/models/" + this.getModel() + ":generateContent?key=" + this.apiKey;
+        }
+
+        private string escapeJsonString(const string &in text) {
+            string escaped = text;
+            
+            escaped.replace_this("\\", "\\\\", true);
+            
+            escaped.replace_this("\"", "\\\"");
+            
+            escaped.replace_this("\n", "\\n");
+            escaped.replace_this("\r", "\\r");
+            escaped.replace_this("\t", "\\t");
+            escaped.replace_this("\b", "\\b");
+            escaped.replace_this("\f", "\\f");
+            
+            return escaped;
+        }
+
+        private string buildJsonPayload(const string &in text) {
+            string escapedText = this.escapeJsonString(text);
+            
+            string body = "{\"contents\":[{\"parts\":[{\"text\":\"" + escapedText + "\"}]}]}";
+            
+            return body;
+        }
+
+        string detectLanguageAndTranslate(const string &in text, const string &in sourceLang, const string &in targetLang) {
+            string url = this.buildApiUrl();
+            
+            string prompt = "You are a language detection and translation expert. Analyze the provided text and:\n";
+            prompt += "1. Detect the language of the text\n";
+            prompt += "2. Compare it with the configured source language: '" + sourceLang + "' and target language: '" + targetLang + "'\n";
+            prompt += "3. If the detected language matches the TARGET language ('" + targetLang + "'), translate FROM target TO source\n";
+            prompt += "4. If the detected language matches the SOURCE language ('" + sourceLang + "') or is different from both, translate FROM source TO target\n";
+            prompt += "5. For 'Automatic' source language, always detect and translate to the target language\n\n";
+            prompt += "CRITICAL: Provide ONLY ONE clean translation without multiple options, prefixes, or formatting.\n";
+            prompt += "RESPONSE FORMAT (respond ONLY with this format):\n";
+            prompt += "DIRECTION: [source_to_target|target_to_source]\n";
+            prompt += "TRANSLATION: [the actual translation here - SINGLE CLEAN TRANSLATION ONLY]\n\n";
+            prompt += "DO NOT include multiple translation options, prefixes, or any ### delimiters.\n";
+            prompt += "Text to analyze: \"" + text + "\"";
+
+            string body = this.buildJsonPayload(prompt);
+            
+            string result = requestURL(url, body);
+            
+            try {
+                json_object@ response = parse_json(result);
+                if (response.exists("error")) {
+                    json_object@ error = response["error"];
+                    string errorMessage = "API Error: ";
+                    if (error.exists("message")) {
+                        errorMessage += error["message"];
+                    } else {
+                        errorMessage += "Unknown error";
+                    }
+                    return "Error: " + errorMessage;
+                }
+                
+                json_array@ candidates = response["candidates"];
+                
+                if (candidates is null || candidates.length() == 0) {
+                    return "Error: Invalid API response for language detection.";
+                }
+                
+                json_object@ firstCandidate = candidates[0];
+                json_object@ content = firstCandidate["content"];
+                json_array@ parts = content["parts"];
+                
+                if (parts is null || parts.length() == 0) {
+                    return "Error: Invalid API response for language detection.";
+                }
+                
+                json_object@ firstPart = parts[0];
+                string analysisResult = firstPart["text"];
+                
+                string translation = "";
+                if (analysisResult.find("TRANSLATION:") != -1) {
+                    int translationStart = analysisResult.find("TRANSLATION:") + 12;
+                    translation = analysisResult.substr(translationStart).trim_whitespace();
+                }
+                
+                string direction = "normal";
+                if (analysisResult.find("DIRECTION: target_to_source") != -1) {
+                    direction = "reversa";
+                }
+                
+                return direction + "|" + translation;
+                
+            } catch {
+                return "fallback|" + this.translate(sourceLang, targetLang, text);
+            }
+        }
+
 	string translate(const string &in originalLang, const string &in destinationLang, const string&in text) {
-		string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+		string url = this.buildApiUrl();
 
 		string fromLang = (this.availableLanguages[originalLang] == "auto") ? "the automatically detected language" : "'" + originalLang + "'";
 		string toLang = "'" + destinationLang + "'";
@@ -40,12 +144,12 @@ class Translator {
 		prompt += "1. ALL translation results must be in " + toLang + " language only.\n";
 		prompt += "2. The TYPE descriptions must be in " + userLang + " language.\n";
 		prompt += "3. The actual translated text must be in " + toLang + " language.\n";
-		prompt += "4. Format: ###TYPE_IN_" + userLang.upper() + "### TRANSLATED_TEXT_IN_" + toLang.upper() + "\n";
+		prompt += "4. CRITICAL: Use EXACT format ###TYPE### TRANSLATION_TEXT\n";
 		prompt += "5. Provide multiple translation options when applicable (formal, informal, literal, contextual, etc).\n";
-		prompt += "6. For each translation, use this exact format:\n";
+		prompt += "6. For each translation, use this EXACT format:\n";
 		prompt += "   ###TYPE### translation_text\n";
 		prompt += "   Where:\n";
-		prompt += "   - TYPE: description in " + userLang + " (like 'terjemahan formal', 'tradução informal', etc.)\n";
+		prompt += "   - TYPE: description in " + userLang + " (like 'tradução formal', 'tradução informal', etc.)\n";
 		prompt += "   - translation_text: the actual translation in " + toLang + " ONLY\n";
 		
 		// Add specific examples based on user language
@@ -63,24 +167,33 @@ class Translator {
 			prompt += "   ###informal translation### [translated text in target language]\n";
 		}
 		
-		prompt += "8. REMEMBER: Only the TYPE description uses " + userLang + ", the translated text must be in " + toLang + ".\n";
-		prompt += "9. Separate multiple translations with the delimiter: |||\n";
-		prompt += "10. Do not include any other explanations outside the format specified.\n\n";
+		prompt += "8. IMPORTANT: Do NOT mix prefixes like 'tradução formal:' with ### delimiters.\n";
+		prompt += "9. IMPORTANT: Each translation must start with ### and end with the translated text only.\n";
+		prompt += "10. Use ||| to separate multiple translation groups if needed.\n";
+		prompt += "11. Do not include any other explanations outside the format specified.\n\n";
 		prompt += "Text to translate:\n---\n" + text + "\n---";
 
-		string escapedPrompt = prompt;
-		escapedPrompt.replace("\\", "\\\\");
-		escapedPrompt.replace("\"", "\\\"");
-		escapedPrompt.replace("\n", "\\n");
-		escapedPrompt.replace("\r", "\\r");
-		escapedPrompt.replace("\t", "\\t");
-
-		string body = "{\"contents\":[{\"parts\":[{\"text\":\"" + escapedPrompt + "\"}]}]}";
+		string body = this.buildJsonPayload(prompt);
 		
+		// alert("Debug JSON - Translate", body);
 		string result = requestURL(url, body);
 
 		try {
 			json_object@ response = parse_json(result);
+			
+			// Verificar se há erro na resposta da API
+			if (response.exists("error")) {
+				json_object@ error = response["error"];
+				string errorMessage = "API Error: ";
+				if (error.exists("message")) {
+					errorMessage += error["message"];
+				} else {
+					errorMessage += "Unknown error";
+				}
+				alert("Gemini API Error", errorMessage);
+				return "Error: " + errorMessage;
+			}
+			
 			json_array@ candidates = response["candidates"];
 
 			if (candidates is null || candidates.length() == 0) {
